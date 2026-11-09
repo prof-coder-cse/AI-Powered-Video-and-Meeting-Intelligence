@@ -26,6 +26,13 @@ from core.rag_engine import build_rag_chain, ask_question
 
 load_dotenv()
 
+load_dotenv()
+
+# Load Streamlit Cloud secrets into environment variables
+for key, value in st.secrets.items():
+    if isinstance(value, str):
+        os.environ.setdefault(key, value)
+
 APP_NAME = "MeetLens"
 TAGLINE = "Your meetings, understood. Turn long videos into clear summaries, decisions, and next steps."
 
