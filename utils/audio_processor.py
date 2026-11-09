@@ -1,15 +1,21 @@
 import yt_dlp
 from pydub import AudioSegment
 import os
-import imageio_ffmpeg
+import shutil
 from pathlib import Path
 from pydub.utils import mediainfo_json
-FFMPEG_PATH = os.path.expanduser("~/Downloads/ffmpeg")
-FFPROBE_PATH = os.path.expanduser("~/Downloads/ffprobe")
+# Cross-platform FFmpeg configuration
+FFMPEG_PATH = shutil.which("ffmpeg") or os.path.expanduser("~/Downloads/ffmpeg")
+FFPROBE_PATH = shutil.which("ffprobe") or os.path.expanduser("~/Downloads/ffprobe")
+
+if not os.path.isfile(FFMPEG_PATH):
+    raise RuntimeError("FFmpeg not found. Please install FFmpeg.")
+
+if not os.path.isfile(FFPROBE_PATH):
+    raise RuntimeError("FFprobe not found. Please install FFprobe.")
 
 AudioSegment.converter = FFMPEG_PATH
 AudioSegment.ffprobe = FFPROBE_PATH
-
 
 
 DOWNLOAD_DIR = "downloads" # saari cheezo ko ism save krke rakhenge
