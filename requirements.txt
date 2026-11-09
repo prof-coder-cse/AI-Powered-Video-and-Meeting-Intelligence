@@ -32,3 +32,4 @@ python-dotenv>=1.0.0
 pydub
 imageio-ffmpeg
 deno
+bgutil-ytdlp-pot-provider
