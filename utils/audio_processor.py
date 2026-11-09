@@ -30,7 +30,7 @@ def download_youtube_audio(url : str)-> str:
         'outtmpl': output_path,
         "ffmpeg_location": FFMPEG_PATH,
         'js_runtimes': {
-        'node': {}
+          'deno': {}
         },
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
