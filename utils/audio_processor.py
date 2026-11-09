@@ -23,33 +23,39 @@ os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
 
 
-def download_youtube_audio(url : str)-> str:
-    output_path = os.path.join(DOWNLOAD_DIR, "%(title)s.%(ext)s")
+def download_youtube_audio(url: str) -> str:
+    output_path = os.path.join(DOWNLOAD_DIR, "%(id)s.%(ext)s")
+
     ydl_opts = {
-    'format': 'bestaudio/best',
-    'outtmpl': output_path,
-    'ffmpeg_location': FFMPEG_PATH,
+        "format": "bestaudio/best",
+        "outtmpl": output_path,
+        "ffmpeg_location": FFMPEG_PATH,
+        "js_runtimes": {
+            "deno": {}
+        },
+        "postprocessors": [{
+            "key": "FFmpegExtractAudio",
+            "preferredcodec": "mp3",
+            "preferredquality": "192",
+        }],
+    }
 
-    'js_runtimes': {
-        'deno': {}
-    },
-
-    'extractor_args': {
-        'youtube': {
-            'player_client': ['default,-ios']
-        }
-    },
-
-    'postprocessors': [{
-        'key': 'FFmpegExtractAudio',
-        'preferredcodec': 'mp3',
-        'preferredquality': '192',
-    }],
-}
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=True)
-        filename = ydl.prepare_filename(info)
-        filename = str(Path(filename).with_suffix(".mp3"))
+
+        # Get the actual filename after post-processing
+        filename = info.get("filepath")
+
+        if not filename:
+            requested = info.get("requested_downloads", [])
+            if requested:
+                filename = requested[0].get("filepath")
+
+        if not filename or not os.path.isfile(filename):
+            raise FileNotFoundError(
+                f"Downloaded audio file not found. Path: {filename}"
+            )
+
     return filename
 # data = (download_youtube_audio("https://youtu.be/v0ynfDPpe4E?si=Zvx0OQTIhOCD4S5U"))
 
