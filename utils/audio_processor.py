@@ -26,18 +26,26 @@ os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 def download_youtube_audio(url : str)-> str:
     output_path = os.path.join(DOWNLOAD_DIR, "%(title)s.%(ext)s")
     ydl_opts = {
-        'format': 'bestaudio/best',
-        'outtmpl': output_path,
-        "ffmpeg_location": FFMPEG_PATH,
-        'js_runtimes': {
-          'deno': {}
-        },
-        'postprocessors': [{
-            'key': 'FFmpegExtractAudio',
-            'preferredcodec': 'mp3',
-            'preferredquality': '192',
-        }],
-    }
+    'format': 'bestaudio/best',
+    'outtmpl': output_path,
+    'ffmpeg_location': FFMPEG_PATH,
+
+    'js_runtimes': {
+        'deno': {}
+    },
+
+    'extractor_args': {
+        'youtube': {
+            'player_client': ['default,-ios']
+        }
+    },
+
+    'postprocessors': [{
+        'key': 'FFmpegExtractAudio',
+        'preferredcodec': 'mp3',
+        'preferredquality': '192',
+    }],
+}
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=True)
         filename = ydl.prepare_filename(info)
