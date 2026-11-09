@@ -29,6 +29,9 @@ def download_youtube_audio(url : str)-> str:
         'format': 'bestaudio/best',
         'outtmpl': output_path,
         "ffmpeg_location": FFMPEG_PATH,
+        'js_runtimes': {
+        'node': {}
+        },
         'postprocessors': [{
             'key': 'FFmpegExtractAudio',
             'preferredcodec': 'mp3',
