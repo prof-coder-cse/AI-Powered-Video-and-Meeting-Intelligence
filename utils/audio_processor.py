@@ -21,9 +21,17 @@ AudioSegment.ffprobe = FFPROBE_PATH
 DOWNLOAD_DIR = "downloads" # saari cheezo ko ism save krke rakhenge
 os.makedirs(DOWNLOAD_DIR, exist_ok=True)
 
+import importlib.util
 
+def check_pot_provider():
+    plugin = importlib.util.find_spec(
+        "yt_dlp_plugins.extractor.getpot_bgutil_http"
+    )
+
+    print("BgUtils PO Token Plugin:", "Installed" if plugin else "Not Installed")
 
 def download_youtube_audio(url: str) -> str:
+    check_pot_provider()
     output_path = os.path.join(DOWNLOAD_DIR, "%(id)s.%(ext)s")
 
     ydl_opts = {
