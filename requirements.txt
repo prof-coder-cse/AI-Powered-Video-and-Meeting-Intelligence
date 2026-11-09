@@ -3,7 +3,7 @@
 streamlit>=1.40.0,<2.0
 
 # ---------- Audio ingestion ----------
-yt-dlp>=2024.10.0
+yt-dlp[default]
 openai-whisper==20240930
 
 # ---------- ML dependencies: Intel Mac + Python 3.11 ----------
@@ -30,3 +30,4 @@ fpdf2>=2.8.0
 # ---------- Configuration ----------
 python-dotenv>=1.0.0
 pydub
+imageio-ffmpeg
