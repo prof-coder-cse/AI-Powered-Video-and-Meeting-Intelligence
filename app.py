@@ -10,6 +10,7 @@ import os
 import re
 import tempfile
 import time
+import traceback
 
 import streamlit as st
 from dotenv import load_dotenv
@@ -26,12 +27,13 @@ from core.rag_engine import build_rag_chain, ask_question
 
 load_dotenv()
 
-load_dotenv()
-
-# Load Streamlit Cloud secrets into environment variables
-for key, value in st.secrets.items():
-    if isinstance(value, str):
-        os.environ.setdefault(key, value)
+# Load Streamlit Cloud secrets into environment variables (safe for local dev)
+try:
+    for key, value in st.secrets.items():
+        if isinstance(value, str):
+            os.environ.setdefault(key, value)
+except FileNotFoundError:
+    pass  # No secrets.toml — running locally with .env
 
 APP_NAME = "MeetLens"
 TAGLINE = "Your meetings, understood. Turn long videos into clear summaries, decisions, and next steps."
@@ -462,6 +464,7 @@ if "result" not in st.session_state:
                 st.session_state.language = language
                 st.rerun()
             except Exception as exc:
+                traceback.print_exc()
                 st.error(
                     f"Analysis could not be completed: {exc}. "
                     "Check the video/file, dependencies, and API keys in your .env file."

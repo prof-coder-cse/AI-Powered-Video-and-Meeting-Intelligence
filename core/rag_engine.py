@@ -2,6 +2,7 @@
 import os
 
 from dotenv import load_dotenv
+from core.llm import get_llm
 
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
@@ -21,15 +22,15 @@ from core.vector_store import (
 load_dotenv()
 
 
-def get__llm():
-    """Initialize and return the language model."""
+# def get__llm():
+#     """Initialize and return the language model."""
 
-    return ChatOpenAI(
-        model="openrouter/free",
-        api_key=os.getenv("OPENROUTER_API_KEY"),
-        base_url="https://openrouter.ai/api/v1",
-        temperature=0.3
-    )
+#     return ChatOpenAI(
+#         model="openrouter/free",
+#         api_key=os.getenv("OPENROUTER_API_KEY"),
+#         base_url="https://openrouter.ai/api/v1",
+#         temperature=0.3
+#     )
 
 
 def format_doc(docs):
@@ -72,7 +73,7 @@ def create_rag_chain(retriever):
 
     """Create the common RAG chain."""
 
-    llm = get__llm()
+    llm = get_llm(temperature=0.3)
 
     prompt = get_prompt()
 

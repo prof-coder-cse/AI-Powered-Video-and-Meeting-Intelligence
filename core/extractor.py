@@ -5,19 +5,20 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.runnables import RunnablePassthrough , RunnableLambda
+from core.llm import get_llm
 
-def get__llm():
-    """Initialize and return the language model."""
-    return ChatOpenAI(
-        model="openrouter/free",
-        api_key=os.getenv("OPENROUTER_API_KEY"),
-        base_url="https://openrouter.ai/api/v1",
-        temperature=0.2
-    )
+# def get__llm():
+#     """Initialize and return the language model."""
+#     return ChatOpenAI(
+#         model="openrouter/free",
+#         api_key=os.getenv("OPENROUTER_API_KEY"),
+#         base_url="https://openrouter.ai/api/v1",
+#         temperature=0.2
+#     )
 
 def build_chain(system_prompt: str):
     """Build a chain for processing text with the language model."""
-    llm = get__llm()
+    llm = get_llm()
     prompt = ChatPromptTemplate.from_messages(
         [
             ("system", system_prompt),

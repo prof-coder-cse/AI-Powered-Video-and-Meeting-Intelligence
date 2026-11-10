@@ -5,3 +5,10 @@ __pycache__/
 .DS_Store
 downloads/
 vector_db/
+.streamlit/secrets.toml
+*.webm
+*.mp4
+*.mp3
+*.wav
+*.m4a
+uv.lock

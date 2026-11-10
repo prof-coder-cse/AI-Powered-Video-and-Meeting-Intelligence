@@ -5,17 +5,32 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_core.runnables import RunnablePassthrough , RunnableLambda
+from core.llm import get_llm
 
 load_dotenv()
 
-def get__llm():
-    """Initialize and return the language model."""
-    return ChatOpenAI(
-        model="openrouter/free",
-        api_key=os.getenv("OPENROUTER_API_KEY"),
-        base_url="https://openrouter.ai/api/v1",
-        temperature=0.3
-    )
+# def get__llm():
+#     load_dotenv()
+
+#     api_key = os.getenv("OPENROUTER_API_KEY")
+
+#     # Fallback for Streamlit Cloud
+#     try:
+#         import streamlit as st
+#         if not api_key:
+#             api_key = st.secrets.get("OPENROUTER_API_KEY")
+#     except Exception:
+#         pass
+
+#     if not api_key:
+#         raise ValueError("OPENROUTER_API_KEY is missing")
+
+#     return ChatOpenAI(
+#         model="openrouter/free",
+#         api_key=api_key,
+#         base_url="https://openrouter.ai/api/v1",
+#         temperature=0.2
+#     )
 
 # splitting the text into smaller chunks for better summarization
 def split_transcript(transcript: str)->list:
@@ -28,7 +43,7 @@ def split_transcript(transcript: str)->list:
 
 def summarize_chunks(transcript : str)-> str:
     """Summarize the transcript using the language model."""
-    llm = get__llm()
+    llm = get_llm()
 
     map_prompt = ChatPromptTemplate.from_messages(
         [
@@ -57,7 +72,7 @@ def summarize_chunks(transcript : str)-> str:
 
 def generate_title(transcript : str)-> str:
     "Generate a concise title for the meeting transcript."
-    llm = get__llm()
+    llm = get_llm()
     title_prompt = ChatPromptTemplate.from_messages(
         [
             ("system" , "You are a helpful assistant that generates concise and relevant titles for meeting transcripts. Your task is to create a title that accurately reflects the content of the transcript, ensuring it is clear and informative."),
