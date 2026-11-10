@@ -27,11 +27,9 @@ import importlib.util
 
 def check_pot_provider():
     plugin = importlib.util.find_spec(
-        "yt_dlp_plugins.extractor.getpot_bgutil_http"
+        "yt_dlp_plugins.extractor.getpot_bgutil_script"
     )
-
-    print("BgUtils PO Token Plugin:", "Installed" if plugin else "Not Installed")
-
+    print("BgUtils Script Plugin:", "Installed" if plugin else "Not Installed")
 # def check_pot_provider():
 #     plugin = importlib.util.find_spec(
 #         "yt_dlp_plugins.extractor.getpot_bgutil_script"
