@@ -4,6 +4,7 @@ import os
 import shutil
 from pathlib import Path
 from pydub.utils import mediainfo_json
+import requests
 # Cross-platform FFmpeg configuration
 FFMPEG_PATH = shutil.which("ffmpeg") or os.path.expanduser("~/Downloads/ffmpeg")
 FFPROBE_PATH = shutil.which("ffprobe") or os.path.expanduser("~/Downloads/ffprobe")
@@ -30,8 +31,19 @@ def check_pot_provider():
 
     print("BgUtils PO Token Plugin:", "Installed" if plugin else "Not Installed")
 
+def check_pot_server():
+    try:
+        response = requests.get(
+            "http://127.0.0.1:4416",
+            timeout=3
+        )
+        print("POT SERVER STATUS:", response.status_code)
+    except Exception as e:
+        print("POT SERVER ERROR:", repr(e))
+
 def download_youtube_audio(url: str) -> str:
     check_pot_provider()
+    check_pot_server()
     output_path = os.path.join(DOWNLOAD_DIR, "%(id)s.%(ext)s")
 
     ydl_opts = {
@@ -41,6 +53,11 @@ def download_youtube_audio(url: str) -> str:
         "js_runtimes": {
             "deno": {}
         },
+        'extractor_args': {
+           'youtubepot-bgutilhttp': {
+           'base_url': 'http://127.0.0.1:4416'
+         }
+       },
         "postprocessors": [{
             "key": "FFmpegExtractAudio",
             "preferredcodec": "mp3",
