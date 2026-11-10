@@ -465,10 +465,21 @@ if "result" not in st.session_state:
                 st.rerun()
             except Exception as exc:
                 traceback.print_exc()
-                st.error(
-                    f"Analysis could not be completed: {exc}. "
-                    "Check the video/file, dependencies, and API keys in your .env file."
-                )
+                err_str = str(exc)
+                if "403" in err_str or "blocked" in err_str.lower():
+                    st.error(
+                        "⛔ **YouTube blocked the download from this cloud server.**\n\n"
+                        "YouTube restricts downloads from datacenter IPs. "
+                        "To work around this:\n\n"
+                        "1. Download the video/audio to your device first\n"
+                        "2. Use the **↑ Upload a file** tab to upload it here\n\n"
+                        "File upload works reliably and supports MP3, WAV, M4A, MP4, MKV, and WebM."
+                    )
+                else:
+                    st.error(
+                        f"Analysis could not be completed: {exc}. "
+                        "Check the video/file, dependencies, and API keys."
+                    )
 
 # ───────────────────────────── Results workspace ─────────────────────────────
 else:

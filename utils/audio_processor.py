@@ -115,16 +115,22 @@ def download_youtube_audio(url: str) -> str:
 
     output_path = os.path.join(DOWNLOAD_DIR, "%(id)s.%(ext)s")
 
+    # Strategy 1: Use PO tokens + cloud-friendly player clients
     ydl_opts = {
-        "format": "bestaudio/best",
+        "format": "worstaudio/worst",  # smaller = less likely to be blocked
         "outtmpl": output_path,
         "ffmpeg_location": FFMPEG_PATH,
+        "retries": 5,
+        "fragment_retries": 5,
+        "socket_timeout": 30,
+        "geo_bypass": True,
         "js_runtimes": {
             "deno": {}
         },
         "extractor_args": {
             "youtube": {
-                "player_client": ["mweb", "tv", "web_safari"]
+                "player_client": ["android_vr", "mediaconnect", "mweb", "tv"],
+                "player_skip": ["webpage"],
             },
             "youtubepot-bgutilscript": {
                 "server_home": [get_bgutil_server_home()]
@@ -133,26 +139,56 @@ def download_youtube_audio(url: str) -> str:
         "postprocessors": [{
             "key": "FFmpegExtractAudio",
             "preferredcodec": "mp3",
-            "preferredquality": "192",
+            "preferredquality": "128",
         }],
     }
 
-    with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(url, download=True)
+    strategies = [
+        ("PO token + android_vr/mediaconnect", ydl_opts),
+        ("Fallback: web client only", {
+            **ydl_opts,
+            "extractor_args": {
+                "youtube": {
+                    "player_client": ["web", "mweb"],
+                },
+                "youtubepot-bgutilscript": {
+                    "server_home": [get_bgutil_server_home()]
+                }
+            },
+        }),
+    ]
 
-        filename = info.get("filepath")
+    last_error = None
+    for name, opts in strategies:
+        try:
+            print(f"Trying download strategy: {name}")
+            with yt_dlp.YoutubeDL(opts) as ydl:
+                info = ydl.extract_info(url, download=True)
 
-        if not filename:
-            requested = info.get("requested_downloads", [])
-            if requested:
-                filename = requested[0].get("filepath")
+                filename = info.get("filepath")
+                if not filename:
+                    requested = info.get("requested_downloads", [])
+                    if requested:
+                        filename = requested[0].get("filepath")
 
-        if not filename or not os.path.isfile(filename):
-            raise FileNotFoundError(
-                f"Downloaded audio file not found. Path: {filename}"
-            )
+                if filename and os.path.isfile(filename):
+                    print(f"Download succeeded with strategy: {name}")
+                    return filename
 
-    return filename
+                raise FileNotFoundError(
+                    f"Downloaded audio file not found. Path: {filename}"
+                )
+        except Exception as e:
+            print(f"Strategy '{name}' failed: {e}")
+            last_error = e
+            continue
+
+    raise RuntimeError(
+        "YouTube blocked the download from this cloud server (HTTP 403). "
+        "This is a known limitation — YouTube restricts downloads from "
+        "datacenter IPs. Please use the **Upload a file** tab instead: "
+        "download the video/audio to your device first, then upload it."
+    ) from last_error
 
 # data = (download_youtube_audio("https://youtu.be/v0ynfDPpe4E?si=Zvx0OQTIhOCD4S5U"))
 
