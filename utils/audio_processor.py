@@ -6,6 +6,37 @@ from pathlib import Path
 from pydub.utils import mediainfo_json
 import requests
 import subprocess
+import platform
+
+# ── Auto-install Deno if missing (needed on Streamlit Cloud) ──
+def _ensure_deno():
+    """Install Deno if it's not already available on the system."""
+    if shutil.which("deno"):
+        return  # already available
+
+    print("Deno not found — installing automatically...")
+    deno_dir = Path.home() / ".deno"
+    deno_bin = deno_dir / "bin" / "deno"
+
+    if not deno_bin.exists():
+        # Official one-liner adapted for non-interactive use
+        subprocess.run(
+            ["sh", "-c", "curl -fsSL https://deno.land/install.sh | sh"],
+            check=True,
+            env={**os.environ, "DENO_INSTALL": str(deno_dir)},
+        )
+
+    if deno_bin.exists():
+        # Make deno discoverable for subprocesses
+        os.environ["PATH"] = f"{deno_dir / 'bin'}:{os.environ.get('PATH', '')}"
+        print(f"Deno installed at {deno_bin}")
+    else:
+        raise RuntimeError(
+            "Failed to install Deno. YouTube downloads may not work."
+        )
+
+_ensure_deno()
+
 # Cross-platform FFmpeg configuration
 FFMPEG_PATH = shutil.which("ffmpeg") or os.path.expanduser("~/Downloads/ffmpeg")
 FFPROBE_PATH = shutil.which("ffprobe") or os.path.expanduser("~/Downloads/ffprobe")
