@@ -5,6 +5,7 @@ import shutil
 from pathlib import Path
 from pydub.utils import mediainfo_json
 import requests
+import subprocess
 # Cross-platform FFmpeg configuration
 FFMPEG_PATH = shutil.which("ffmpeg") or os.path.expanduser("~/Downloads/ffmpeg")
 FFPROBE_PATH = shutil.which("ffprobe") or os.path.expanduser("~/Downloads/ffprobe")
@@ -31,19 +32,58 @@ def check_pot_provider():
 
     print("BgUtils PO Token Plugin:", "Installed" if plugin else "Not Installed")
 
-def check_pot_server():
-    try:
-        response = requests.get(
-            "http://127.0.0.1:4416",
-            timeout=3
+# def check_pot_provider():
+#     plugin = importlib.util.find_spec(
+#         "yt_dlp_plugins.extractor.getpot_bgutil_script"
+#     )
+#     print("BgUtils Script Plugin:", "Installed" if plugin else "Not Installed")
+
+def get_bgutil_server_home():
+    # Local Mac installation
+    local_server = Path.home() / "bgutil-ytdlp-pot-provider" / "server"
+
+    if local_server.is_dir():
+        server_dir = local_server
+    else:
+        # Streamlit Cloud installation
+        cache_dir = Path.home() / ".cache" / "bgutil-ytdlp-pot-provider"
+        repo_dir = cache_dir / "repo"
+        server_dir = repo_dir / "server"
+
+        if not server_dir.exists():
+            cache_dir.mkdir(parents=True, exist_ok=True)
+
+            subprocess.run(
+                [
+                    "git", "clone",
+                    "--depth", "1",
+                    "--branch", "2.0.2",
+                    "https://github.com/Brainicism/bgutil-ytdlp-pot-provider.git",
+                    str(repo_dir)
+                ],
+                check=True
+            )
+
+        if not (server_dir / "src" / "generate_once.ts").exists():
+            raise RuntimeError("BgUtils provider source not found!")
+
+    # Install provider dependencies once
+    if not (server_dir / "node_modules").exists():
+        subprocess.run(
+            ["deno", "install", "--allow-scripts=npm:canvas", "--frozen"],
+            cwd=str(server_dir),
+            check=True
         )
-        print("POT SERVER STATUS:", response.status_code)
-    except Exception as e:
-        print("POT SERVER ERROR:", repr(e))
+
+    return str(server_dir)
+
 
 def download_youtube_audio(url: str) -> str:
-    check_pot_provider()
-    check_pot_server()
+    plugin = importlib.util.find_spec(
+        "yt_dlp_plugins.extractor.getpot_bgutil_script"
+    )
+    print("BgUtils Script Plugin:", "Installed" if plugin else "Not Installed")
+
     output_path = os.path.join(DOWNLOAD_DIR, "%(id)s.%(ext)s")
 
     ydl_opts = {
@@ -53,11 +93,14 @@ def download_youtube_audio(url: str) -> str:
         "js_runtimes": {
             "deno": {}
         },
-        'extractor_args': {
-           'youtubepot-bgutilhttp': {
-           'base_url': 'http://127.0.0.1:4416'
-         }
-       },
+        "extractor_args": {
+            "youtube": {
+                "player_client": ["mweb", "tv", "web_safari"]
+            },
+            "youtubepot-bgutilscript": {
+                "server_home": [get_bgutil_server_home()]
+            }
+        },
         "postprocessors": [{
             "key": "FFmpegExtractAudio",
             "preferredcodec": "mp3",
@@ -68,7 +111,6 @@ def download_youtube_audio(url: str) -> str:
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(url, download=True)
 
-        # Get the actual filename after post-processing
         filename = info.get("filepath")
 
         if not filename:
@@ -82,6 +124,7 @@ def download_youtube_audio(url: str) -> str:
             )
 
     return filename
+
 # data = (download_youtube_audio("https://youtu.be/v0ynfDPpe4E?si=Zvx0OQTIhOCD4S5U"))
 
 
