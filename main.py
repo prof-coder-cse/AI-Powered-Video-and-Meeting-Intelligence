@@ -1,5 +1,5 @@
 from dotenv import load_dotenv
-from utils.audio_processor import process_audio_from_youtube
+from utils.audio_processor import process_audio_from_youtube, fetch_youtube_transcript
 from core.transcriber import transcribe_all
 from core.summarize import summarize_chunks, generate_title
 from core.extractor import extract_action_items, extract_key_decisions, extract_questions
@@ -7,12 +7,18 @@ from core.rag_engine import build_rag_chain, ask_question
 
 load_dotenv()
 
-def run_pipeline(source : str):
+def run_pipeline(source: str, language: str = "english"):
     print("Starting the AI-assisted video processing pipeline...")
 
-    chunks = process_audio_from_youtube(source)
+    transcript = None
+    if source.startswith(("http://", "https://")):
+        print("Checking for direct YouTube transcript/subtitles...")
+        lang_code = "hi" if language == "hinglish" else "en"
+        transcript = fetch_youtube_transcript(source, language_code=lang_code)
 
-    transcript = transcribe_all(chunks)
+    if not transcript:
+        chunks = process_audio_from_youtube(source)
+        transcript = transcribe_all(chunks)
 
     title = generate_title(transcript)
 
@@ -40,7 +46,7 @@ if __name__ == "__main__":
     # CLI entry point
     source = input("Enter YouTube URL or local file path: ").strip()
     language = input("Language (english/hinglish): ").strip() or "english"
-    result = run_pipeline(source)
+    result = run_pipeline(source, language=language)
 
     print("\n" + "=" * 60)
     print(f"📌 Title: {result['title']}")

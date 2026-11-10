@@ -107,6 +107,97 @@ def get_bgutil_server_home():
     return str(server_dir)
 
 
+def fetch_youtube_transcript(url: str, language_code: str = "en") -> str | None:
+    """Fetch transcripts/subtitles directly from YouTube without downloading media streams.
+    Bypasses datacenter IP blocks (HTTP 403) and saves processing time & memory.
+    """
+    import json
+    import re
+    import urllib.request
+
+    # Strategy 1: youtube_transcript_api
+    try:
+        from youtube_transcript_api import YouTubeTranscriptApi
+        match = re.search(r"(?:v=|\/)([0-9A-Za-z_-]{11})", url)
+        if match:
+            video_id = match.group(1)
+            transcript_list = YouTubeTranscriptApi.list_transcripts(video_id)
+            transcript = None
+            langs = [language_code, "en", "hi", "en-US", "en-GB"]
+            try:
+                transcript = transcript_list.find_transcript(langs)
+            except Exception:
+                try:
+                    transcript = transcript_list.find_generated_transcript(langs)
+                except Exception:
+                    # fallback to any available transcript
+                    for t in transcript_list:
+                        transcript = t
+                        break
+
+            if transcript:
+                data = transcript.fetch()
+                parts = [entry["text"] for entry in data if entry.get("text")]
+                text = " ".join(parts).strip()
+                if text:
+                    print(f"Direct transcript fetched via YouTubeTranscriptApi: {len(text)} characters")
+                    return text
+    except Exception as exc:
+        print(f"YouTubeTranscriptApi attempt skipped/failed: {exc}")
+
+    # Strategy 2: yt-dlp subtitle metadata extraction (downloads JSON, not video/audio)
+    try:
+        ydl_opts = {
+            "skip_download": True,
+            "writesubtitles": True,
+            "writeautomaticsub": True,
+            "quiet": True,
+            "no_warnings": True,
+        }
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(url, download=False)
+            subtitles = info.get("subtitles") or {}
+            auto_subtitles = info.get("automatic_captions") or {}
+
+            target_subs = None
+            langs = [language_code, "en", "en-US", "en-GB", "en-orig", "hi"]
+            for lang in langs:
+                if lang in subtitles:
+                    target_subs = subtitles[lang]
+                    break
+                elif lang in auto_subtitles:
+                    target_subs = auto_subtitles[lang]
+                    break
+
+            if not target_subs and auto_subtitles:
+                first_lang = list(auto_subtitles.keys())[0]
+                target_subs = auto_subtitles[first_lang]
+
+            if target_subs:
+                json_fmt = next((fmt for fmt in target_subs if fmt.get("ext") == "json3"), None)
+                if json_fmt and json_fmt.get("url"):
+                    req = urllib.request.Request(
+                        json_fmt["url"],
+                        headers={"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+                    )
+                    with urllib.request.urlopen(req, timeout=15) as resp:
+                        sub_data = json.loads(resp.read().decode("utf-8"))
+                        lines = []
+                        for event in sub_data.get("events", []):
+                            segs = event.get("segs", [])
+                            seg_text = "".join(s.get("utf8", "") for s in segs).strip()
+                            if seg_text and seg_text != "\n":
+                                lines.append(seg_text)
+                        text = " ".join(lines).strip()
+                        if text:
+                            print(f"Direct transcript fetched via yt-dlp subtitles: {len(text)} characters")
+                            return text
+    except Exception as exc:
+        print(f"yt-dlp subtitle extraction skipped/failed: {exc}")
+
+    return None
+
+
 def download_youtube_audio(url: str) -> str:
     plugin = importlib.util.find_spec(
         "yt_dlp_plugins.extractor.getpot_bgutil_script"

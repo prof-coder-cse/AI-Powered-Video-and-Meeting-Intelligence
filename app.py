@@ -15,7 +15,7 @@ import traceback
 import streamlit as st
 from dotenv import load_dotenv
 
-from utils.audio_processor import process_audio_from_youtube
+from utils.audio_processor import process_audio_from_youtube, fetch_youtube_transcript
 from core.transcriber import transcribe_all
 from core.summarize import summarize_chunks, generate_title
 from core.extractor import (
@@ -250,8 +250,8 @@ def text_of(value) -> str:
     return value if isinstance(value, str) else "\n".join(map(str, value))
 
 
-def run_pipeline_ui(source: str, placeholder) -> dict:
-    """Run the original pipeline and display real stage transitions."""
+def run_pipeline_ui(source: str, placeholder, language: str = "english") -> dict:
+    """Run the pipeline with direct transcript extraction fallback and display stage transitions."""
     started = time.time()
     result = {}
 
@@ -259,10 +259,29 @@ def run_pipeline_ui(source: str, placeholder) -> dict:
         placeholder.markdown(stepper(done, active), unsafe_allow_html=True)
 
     show(0, 0)
-    chunks = process_audio_from_youtube(source)
-    show(1, 1)
-    transcript = transcribe_all(chunks)
-    show(2, 2)
+    transcript = None
+    lang_code = "hi" if language == "hinglish" else "en"
+
+    # Fast path: For YouTube links, try direct transcript/caption extraction
+    # This completely avoids media stream download blocks (HTTP 403) and runs much faster
+    if source.startswith(("http://", "https://")):
+        try:
+            print("Attempting direct YouTube transcript extraction...")
+            transcript = fetch_youtube_transcript(source, language_code=lang_code)
+            if transcript:
+                print("Direct YouTube transcript acquired successfully!")
+                show(2, 2)
+        except Exception as exc:
+            print(f"Direct transcript extraction failed: {exc}")
+
+    # Fallback path: Download audio (or use local uploaded file) and run Whisper ASR
+    if not transcript:
+        show(0, 0)
+        chunks = process_audio_from_youtube(source)
+        show(1, 1)
+        transcript = transcribe_all(chunks)
+        show(2, 2)
+
     result["title"] = generate_title(transcript)
     result["summary"] = summarize_chunks(transcript)
     show(3, 3)
@@ -459,7 +478,7 @@ if "result" not in st.session_state:
             st.warning("Paste a YouTube URL or upload a media file to begin.")
         else:
             try:
-                st.session_state.result = run_pipeline_ui(source, progress_slot)
+                st.session_state.result = run_pipeline_ui(source, progress_slot, language=language)
                 st.session_state.chat = []
                 st.session_state.language = language
                 st.rerun()

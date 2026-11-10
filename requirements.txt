@@ -5,6 +5,7 @@ streamlit>=1.40.0,<2.0
 # ---------- Audio ingestion ----------
 yt-dlp[default]
 openai-whisper==20240930
+youtube-transcript-api>=0.6.2
 
 # ---------- ML dependencies ----------
 torch>=2.2.0,<3.0
